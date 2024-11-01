@@ -2,6 +2,16 @@ import dotenv from 'dotenv';
 import express from 'express';
 import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
+import { Logger } from './Logger';
+import { objectToString, stringToObject } from './formatter';
+import { validateAndCorrectAiResponse } from './validateAndCorrectAiResponse';
+import { SubgraphValidator } from './validator/SubgraphValidator';
+import { promises as fs } from 'fs';
+import { Supergraph } from '@apollo/federation-internals';
+import { SubgraphValidators } from './types';
+import { parse, print } from 'graphql';
+
+const subgraphValidators: SubgraphValidators = new Map();
 
 dotenv.config();
 
@@ -19,9 +29,12 @@ app.post('/', async (req, res) => {
     body: { query, variables },
   } = req.body;
 
-  console.log('\n\n');
-  console.log('############################################################');
-  console.log('Subgraph Request:', serviceName, id);
+  // const normalizedQuery = addTypenameToDocument(query);
+  const normalizedQuery = print(parse(query));
+
+  const logger = new Logger(serviceName, id);
+
+  logger.logStart('Subgraph Request');
 
   try {
     // const model = google('models/gemini-1.5-pro-latest');
@@ -31,31 +44,37 @@ app.post('/', async (req, res) => {
     if (variables) {
       promptVariables = `
 
-        With variables:
-        ${JSON.stringify(variables)}`;
+With variables:
+\`\`\`json
+${objectToString(variables)}
+\`\`\``;
     }
 
-    const prompt = `Give me mock data consistent with [Website/Company] that fulfills this query:
-      ${query}
-      ${promptVariables}
+    const prompt = `Give me mock data that fulfills this query:
+\`\`\`graphql
+${normalizedQuery}
+\`\`\`${promptVariables}`;
 
-      Price amount is a string.`;
-
-    console.log('\n', serviceName, 'Prompt:', prompt);
+    logger.log('💬 Prompt:', prompt);
 
     const { text, finishReason, usage, warnings } = await generateText({
       model,
       prompt,
     });
 
-    console.log('\n', serviceName, 'text:', text);
+    const json = stringToObject(text);
 
-    const jsonText = text.replace(/\n?```([a-z]+)?\n?/gi, '');
+    logger.log('📝 JSON:', objectToString(json));
 
-    const json = JSON.parse(jsonText);
-    console.log('\n', serviceName, 'json:', JSON.stringify(json, null, 2));
+    let responseBody = await validateAndCorrectAiResponse(
+      json,
+      serviceName,
+      model,
+      subgraphValidators,
+      normalizedQuery,
+      logger,
+    );
 
-    let responseBody = json;
     if (!responseBody.data) {
       responseBody = {
         data: responseBody,
@@ -82,7 +101,8 @@ app.post('/', async (req, res) => {
     });
     return;
   } catch (error) {
-    console.log('\n', serviceName, error);
+    logger.log('Encountered error:', error);
+
     res.json({
       version,
       stage,
@@ -94,6 +114,15 @@ app.post('/', async (req, res) => {
   }
 });
 
-app.listen(port, () => {
+app.listen(port, async () => {
+  const supergraphSchema = await fs.readFile('supergraph-schema.graphql', {
+    encoding: 'utf-8',
+  });
+  const supergraph = Supergraph.build(supergraphSchema);
+  const subgraphs = supergraph.subgraphs();
+  subgraphs.values().forEach(({ name, schema }) => {
+    subgraphValidators.set(name, new SubgraphValidator(schema.toAST()));
+  });
+  console.log(`✅ Supergraph schema loaded`);
   console.log(`🚀 Coprocessor running on port ${port}`);
 });
