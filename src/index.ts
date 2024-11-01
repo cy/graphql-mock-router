@@ -50,7 +50,7 @@ ${objectToString(variables)}
 \`\`\``;
     }
 
-    const prompt = `Give me mock data consistent with Wayfair.com that fulfills this query:
+    const prompt = `Give me mock data that fulfills this query:
 \`\`\`graphql
 ${normalizedQuery}
 \`\`\`${promptVariables}`;
