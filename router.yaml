@@ -1,26 +1,116 @@
-cors:
-  allow_any_origin: true
+# Apollo Router Configuration for Render
+listen: 0.0.0.0:${PORT:-4000}
+
+# Supergraph schema location
 supergraph:
-  listen: 127.0.0.1:4000
-  introspection: true
-sandbox:
-  enabled: true
-homepage:
-  enabled: false
-include_subgraph_errors:
-  all: true # Propagate errors from all subraphs
-plugins:
-  experimental.expose_query_plan: true
+  path: ./supergraph-schema.graphql
 
+# CORS configuration for web clients
+cors:
+  origins:
+    - https://*.onrender.com
+    - https://studio.apollographql.com
+    - http://localhost:3000
+    - http://localhost:4000
+  allow_credentials: true
+  allow_headers:
+    - Content-Type
+    - Authorization
+    - Apollo-Require-Preflight
+  allow_methods:
+    - GET
+    - POST
+    - OPTIONS
 
+# Coprocessor configuration
 coprocessor:
-  url: http://127.0.0.1:3000
-  timeout: 10s
-  subgraph:
-    all:
-      request:
-        headers: true
-        context: true
-        uri: true
-        service_name: true
-        body: true
+  url: http://localhost:4001
+  timeout: 30s
+  request:
+    headers: true
+    body: true
+  response:
+    headers: true
+    body: true
+
+# Request/response headers handling
+headers:
+  all:
+    request:
+      - propagate:
+          named: "*"
+    response:
+      - insert:
+          name: "x-powered-by"
+          value: "Apollo Router on Render"
+
+# Health check endpoint
+health_check:
+  enabled: true
+  path: /health
+
+# Logging configuration
+telemetry:
+  apollo:
+    schema_id: ${APOLLO_GRAPH_ID:-""}
+    graph_ref: ${APOLLO_GRAPH_REF:-""}
+
+  # Metrics configuration
+  metrics:
+    common:
+      service_name: graphql-mock-router
+      service_version: "1.0.0"
+
+  # Logging
+  tracing:
+    trace_config:
+      service_name: graphql-mock-router
+      service_version: "1.0.0"
+
+# GraphQL configuration
+graphql:
+  # Enable introspection (disable in production)
+  introspection: ${APOLLO_INTROSPECTION:-true}
+
+  # Query planning
+  planner:
+    mode: ${APOLLO_PLANNER_MODE:-"new"}
+
+# Server configuration
+server:
+  # Enable GraphQL Playground (disable in production)
+  graphql_path: /graphql
+
+  # Request limits
+  experimental_http_max_request_bytes: 2000000 # 2MB
+
+  # Timeouts
+  http_request_timeout: 60s
+
+# Traffic shaping
+traffic_shaping:
+  all:
+    # Global rate limiting
+    global_rate_limit:
+      capacity: 1000
+      interval: 60s
+
+    # Request timeout
+    timeout: 30s
+
+    # Request deduplication
+    experimental_deduplicate_query: true
+
+# Override subgraph URLs if needed
+override_subgraph_url:
+  # Example: override specific subgraph URLs
+  # products: http://localhost:4002/graphql
+  # reviews: http://localhost:4003/graphql
+
+# Security headers
+security:
+  cors:
+    # Additional security headers
+    expose_headers:
+      - "Apollo-Query-Plan-Cache"
+      - "Apollo-Trace-Id"
