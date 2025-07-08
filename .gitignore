@@ -129,4 +129,4 @@ test-report.xml
 router
 
 # Supergraph schema
-supergraph-schema.graphql
+#supergraph-schema.graphql

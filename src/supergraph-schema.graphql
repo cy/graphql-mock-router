@@ -1,0 +1,143 @@
+schema
+  @link(url: "https://specs.apollo.dev/link/v1.0")
+  @link(url: "https://specs.apollo.dev/join/v0.3", for: EXECUTION)
+{
+  query: Query
+}
+
+directive @join__enumValue(graph: join__Graph!) repeatable on ENUM_VALUE
+
+directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet, type: String, external: Boolean, override: String, usedOverridden: Boolean) repeatable on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+
+directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
+
+directive @join__type(graph: join__Graph!, key: join__FieldSet, extension: Boolean! = false, resolvable: Boolean! = true, isInterfaceObject: Boolean! = false) repeatable on OBJECT | INTERFACE | UNION | ENUM | INPUT_OBJECT | SCALAR
+
+directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
+
+directive @link(url: String, as: String, for: link__Purpose, import: [link__Import]) repeatable on SCHEMA
+
+type Continent
+  @join__type(graph: COUNTRIES)
+{
+  """This description is not in any approved proposal."""
+  code: ID!
+  countries: [Country!]!
+  anotherNewField: String
+  b: String
+}
+
+input ContinentFilterInput
+  @join__type(graph: COUNTRIES)
+{
+  code: StringQueryOperatorInput
+}
+
+type Country
+  @join__type(graph: COUNTRIES)
+{
+  awsRegion: String
+  capital: String
+  code: ID!
+  continent: Continent!
+  currencies: [String!]!
+  currency: String
+  emoji: String!
+  emojiU: String!
+  languages: [Language!]!
+  name(lang: String): String!
+  native: String!
+  phone: String!
+  phones: [String!]!
+  states: [State!]!
+  subdivisions: [Subdivision!]!
+}
+
+input CountryFilterInput
+  @join__type(graph: COUNTRIES)
+{
+  code: StringQueryOperatorInput
+  continent: StringQueryOperatorInput
+  currency: StringQueryOperatorInput
+  name: StringQueryOperatorInput
+}
+
+scalar join__FieldSet
+
+enum join__Graph {
+  A @join__graph(name: "a", url: "http://localhost:4000")
+  COUNTRIES @join__graph(name: "countries", url: "http://localhost:4000")
+}
+
+type Language
+  @join__type(graph: COUNTRIES)
+{
+  code: ID!
+  name: String!
+  native: String!
+  rtl: Boolean!
+}
+
+input LanguageFilterInput
+  @join__type(graph: COUNTRIES)
+{
+  code: StringQueryOperatorInput
+}
+
+scalar link__Import
+
+enum link__Purpose {
+  """
+  `SECURITY` features provide metadata necessary to securely resolve fields.
+  """
+  SECURITY
+
+  """
+  `EXECUTION` features provide metadata necessary for operation execution.
+  """
+  EXECUTION
+}
+
+type Query
+  @join__type(graph: A)
+  @join__type(graph: COUNTRIES)
+{
+  b: String! @join__field(graph: A)
+  c: String @join__field(graph: A)
+  d: String! @join__field(graph: A)
+  e: Int @join__field(graph: A)
+  continent(code: ID!): Continent @join__field(graph: COUNTRIES)
+  continents(filter: ContinentFilterInput = {}): [Continent!]! @join__field(graph: COUNTRIES)
+  countries(filter: CountryFilterInput = {}): [Country!]! @join__field(graph: COUNTRIES)
+  country(code: ID!): Country @join__field(graph: COUNTRIES)
+  language(code: ID!): Language @join__field(graph: COUNTRIES)
+  languages(filter: LanguageFilterInput = {}): [Language!]! @join__field(graph: COUNTRIES)
+}
+
+type State
+  @join__type(graph: COUNTRIES)
+{
+  code: String
+  country: Country!
+  name: String!
+}
+
+input StringQueryOperatorInput
+  @join__type(graph: COUNTRIES)
+{
+  eq: String
+  in: [String!]
+  ne: String
+  nin: [String!]
+  regex: String
+}
+
+type Subdivision
+  @join__type(graph: COUNTRIES)
+{
+  code: ID!
+  emoji: String
+  name: String!
+}
