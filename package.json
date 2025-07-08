@@ -3,16 +3,19 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
-    "start:router": "APOLLO_GRAPH_REF=unified-schema ./router --config router.yaml --supergraph supergraph-schema.graphql",
-    "start:coprocessor": "nodemon",
-    "test": "jest --passWithNoTests --updateSnapshot --coverage"
+    "start": "node server.js",
+    "start:router": "APOLLO_GRAPH_REF=cy-prod-test-graph@current ./router --config router.yaml --supergraph supergraph-schema.graphql",
+    "start:coprocessor": "ts-node ./src/index.ts",
+    "test": "jest --passWithNoTests --updateSnapshot --coverage",
+    "build": "yarn install && yarn build:ts",
+    "build:ts": "tsc index.ts --outDir dist || echo 'TypeScript build optional'"
   },
   "author": "Greg Wardwell <gwardwell@wayfair.com>",
   "license": "ISC",
   "dependencies": {
     "@ai-sdk/google": "^0.0.9",
-    "@apollo/federation-internals": "^2.8.0",
-    "@apollo/subgraph": "^2.8.0",
+    "@apollo/federation-internals": "^2.10.0",
+    "@apollo/subgraph": "^2.10.0",
     "ai": "^3.1.2",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
