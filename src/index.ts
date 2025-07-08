@@ -37,7 +37,7 @@ app.post("/", async (req, res) => {
   logger.logStart("Subgraph Request");
 
   try {
-    // const model = google('models/gemini-1.5-pro-latest');
+    //const model = google("gemini-1.5-pro-latest");
     //const model = google('models/gemini-pro');
     const model = google("models/gemini-1.5-flash");
 
